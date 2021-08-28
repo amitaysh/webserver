@@ -1,7 +1,7 @@
 provider "aws" {
   region     = "us-west-2"
-  access_key = "AKIASUUMKCEDSRD25GQP"
-  secret_key = "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"
+  access_key = "*****"
+  secret_key = "******"
 }
 
 resource "aws_ecr_repository" "webserver" {

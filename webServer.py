@@ -16,22 +16,15 @@ class MyServer(BaseHTTPRequestHandler):
 
     # GET return requests count
     def do_GET(self):
-        if self.path == '/health':
+        if self.path == '/count':
+            requests_count = self.increase_count()
             self._set_headers()
-            return
-        if not self.verify_valid_route('GET', 'count'):
-            return
-
-        requests_count = self.increase_count()
-        self._set_headers()
-        response = json.dumps({'count': requests_count})
-        response = bytes(response, 'utf-8')
-        self.wfile.write(response)
+            response = json.dumps({'count': requests_count})
+            response = bytes(response, 'utf-8')
+            self.wfile.write(response)
 
     # POST request to simulate real requests
     def do_POST(self):
-        if not self.verify_valid_route('POST', 'increase'):
-            return
         self.increase_count()
         self._set_headers()
         response = json.dumps({'response': 'ok'})
@@ -47,17 +40,6 @@ class MyServer(BaseHTTPRequestHandler):
         new_count = requests_count+1
         cache.push(count_key_name, new_count)
         return new_count
-
-    def verify_valid_route(self, request_type, allowed_route):
-        if self.path != '/{}'.format(allowed_route):
-            self.send_response(405, 'Method Not Allowed')
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            response = json.dumps({'error': '{} only allows /{} request'.format(request_type, allowed_route)})
-            response = bytes(response, 'utf-8')
-            self.wfile.write(response)
-            return False
-        return True
 
 
 def main():

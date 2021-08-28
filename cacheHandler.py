@@ -37,7 +37,7 @@ class RedisHandler:
 
 class Boto3Handler:
     def __init__(self):
-        session = boto3.Session(aws_access_key_id='AKIASUUMKCEDSRD25GQP', aws_secret_access_key='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')
+        session = boto3.Session(aws_access_key_id='****', aws_secret_access_key='*****')
         self.cache_client = session.client('ecr')
 
     def push(self, key, val):
