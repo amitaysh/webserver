@@ -2,10 +2,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import socket
 import cacheHandler
-
-hostName = "localhost"
-serverPort = 8080
-count_key_name = 'requests_count'
+import config
 
 
 class MyServer(BaseHTTPRequestHandler):
@@ -14,10 +11,10 @@ class MyServer(BaseHTTPRequestHandler):
         self.send_header('Content-type', 'application/json')
         self.end_headers()
 
-    # GET return requests count
+    # GET return requests count or just dummy request
     def do_GET(self):
         if self.path == '/count':
-            requests_count = self.increase_count()
+            requests_count = self.update_count()
             self._set_headers()
             response = json.dumps({'count': requests_count})
             response = bytes(response, 'utf-8')
@@ -25,33 +22,45 @@ class MyServer(BaseHTTPRequestHandler):
         else:
             self.dummy_response()
 
-    # POST request to simulate real requests
+    # POST request to simulate real requests or reset count
     def do_POST(self):
-        self.dummy_response()
+        if self.path == '/reset':
+            self.update_count(reset=True)
+            self._set_headers()
+            response = json.dumps({'response': 'count reset'})
+            response = bytes(response, 'utf-8')
+            self.wfile.write(response)
+        else:
+            self.dummy_response()
 
+    # if health check - don't increase count
     def dummy_response(self):
         if self.path != '/health':
-            self.increase_count()
+            self.update_count()
         self._set_headers()
         response = json.dumps({'response': 'ok'})
         response = bytes(response, 'utf-8')
         self.wfile.write(response)
 
-    def increase_count(self):
+    @staticmethod
+    def update_count(reset=False):
         cache = cacheHandler.Boto3Handler()
+        if reset:
+            cache.delete(config.webserver['count_key_name'])
+            return
         try:
-            requests_count = int(cache.pull(count_key_name))
+            requests_count = int(cache.pull(config.webserver['count_key_name']))
         except ValueError:
             requests_count = 0
         new_count = requests_count+1
-        cache.push(count_key_name, new_count)
+        cache.push(config.webserver['count_key_name'], new_count)
         return new_count
 
 
 def main():
     local_address = socket.gethostbyname(socket.gethostname())
-    web_server = HTTPServer((local_address, serverPort), MyServer)
-    print('Server started http://{}:{}'.format(local_address, serverPort))
+    web_server = HTTPServer((local_address, config.webserver['server_port']), MyServer)
+    print('Server started http://{}:{}'.format(local_address, config.webserver['server_port']))
 
     try:
         web_server.serve_forever()

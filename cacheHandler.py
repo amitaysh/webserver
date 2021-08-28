@@ -2,12 +2,12 @@ import elasticache_auto_discovery
 from pymemcache.client.hash import HashClient
 import redis
 import boto3
+import config
 
 
 class MemCacheHandler:
     def __init__(self):
-        elasticache_config_endpoint = "memcache.j7lwwv.cfg.usw2.cache.amazonaws.com:11211"
-        nodes = elasticache_auto_discovery.discover(elasticache_config_endpoint)
+        nodes = elasticache_auto_discovery.discover(config.cacheHandler['memchached_endpoint'])
         nodes = map(lambda x: (x[1], int(x[2])), nodes)
         self.cache_client = HashClient(nodes)
 
@@ -23,7 +23,7 @@ class MemCacheHandler:
 
 class RedisHandler:
     def __init__(self):
-        self.cache_client = redis.Redis(host='cache-cluster.j7lwwv.0001.usw2.cache.amazonaws.com', port=6379, db=1)
+        self.cache_client = redis.Redis(host=config.cacheHandler['redis_endpoint'], port=6379, db=0)
 
     def push(self, key, val):
         self.cache_client.set(key, val)
@@ -37,12 +37,13 @@ class RedisHandler:
 
 class Boto3Handler:
     def __init__(self):
-        session = boto3.Session(aws_access_key_id='************', aws_secret_access_key='***********')
+        session = boto3.Session(aws_access_key_id=config.cacheHandler['key'], aws_secret_access_key=config.cacheHandler['secret'])
         self.cache_client = session.client('ecr', region_name='us-west-2')
+        self.repository_endpoint = config.cacheHandler['repository_endpoint']
 
     def push(self, key, val):
         self.cache_client.tag_resource(
-            resourceArn='arn:aws:ecr:us-west-2:181756629255:repository/webserver',
+            resourceArn=self.repository_endpoint,
             tags=[
                 {
                     'Key': key,
@@ -53,7 +54,7 @@ class Boto3Handler:
 
     def pull(self, key):
         tags = self.cache_client.list_tags_for_resource(
-            resourceArn='arn:aws:ecr:us-west-2:181756629255:repository/webserver'
+            resourceArn=self.repository_endpoint
         )
         for tag in tags['tags']:
             if 'Key' in tag and tag['Key'] == key:
@@ -61,4 +62,7 @@ class Boto3Handler:
         return '0'
 
     def delete(self, key):
-        self.cache_client.delete(key)
+        self.cache_client.untag_resource(
+            resourceArn=self.repository_endpoint,
+            tagKeys=[key]
+        )

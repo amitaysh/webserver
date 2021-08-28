@@ -1,7 +1,7 @@
 provider "aws" {
   region     = "us-west-2"
-  access_key = "********"
-  secret_key = "*************"
+  access_key = "*****"
+  secret_key = "*****"
 }
 
 resource "aws_ecr_repository" "webserver" {
@@ -24,6 +24,14 @@ resource "aws_ecs_task_definition" "webserver_task" {
         {
           "containerPort": 8080,
           "hostPort": 8080
+        },
+        {
+          "containerPort": 6379,
+          "hostPort": 6379
+        },
+        {
+          "containerPort": 11211,
+          "hostPort": 11211
         }
       ],
       "memory": 512,
