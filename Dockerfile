@@ -1,6 +1,6 @@
 FROM python
 
-RUN pip install boto3
+RUN pip install boto3 elasticache_auto_discovery pymemcache redis
 
 COPY . /
 

@@ -22,10 +22,16 @@ class MyServer(BaseHTTPRequestHandler):
             response = json.dumps({'count': requests_count})
             response = bytes(response, 'utf-8')
             self.wfile.write(response)
+        else:
+            self.dummy_response()
 
     # POST request to simulate real requests
     def do_POST(self):
-        self.increase_count()
+        self.dummy_response()
+
+    def dummy_response(self):
+        if self.path != '/health':
+            self.increase_count()
         self._set_headers()
         response = json.dumps({'response': 'ok'})
         response = bytes(response, 'utf-8')
